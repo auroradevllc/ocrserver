@@ -2,14 +2,13 @@ package controllers
 
 import (
 	"io"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"regexp"
 	"strings"
 
+	"github.com/go-chi/render"
 	"github.com/otiai10/gosseract/v2"
-	"github.com/otiai10/marmoset"
 )
 
 var (
@@ -18,25 +17,29 @@ var (
 
 // FileUpload ...
 func FileUpload(w http.ResponseWriter, r *http.Request) {
-
-	render := marmoset.Render(w, true)
-
 	// Get uploaded file
 	r.ParseMultipartForm(32 << 20)
+
 	// upload, h, err := r.FormFile("file")
 	upload, _, err := r.FormFile("file")
+
 	if err != nil {
-		render.JSON(http.StatusBadRequest, err)
+		render.Status(r, http.StatusBadRequest)
+		render.JSON(w, r, &errorResponse{Error: err.Error()})
 		return
 	}
+
 	defer upload.Close()
 
 	// Create physical file
-	tempfile, err := ioutil.TempFile("", "ocrserver"+"-")
+	tempfile, err := os.CreateTemp("", "ocrserver"+"-")
+
 	if err != nil {
-		render.JSON(http.StatusBadRequest, err)
+		render.Status(r, http.StatusBadRequest)
+		render.JSON(w, r, &errorResponse{Error: err.Error()})
 		return
 	}
+
 	defer func() {
 		tempfile.Close()
 		os.Remove(tempfile.Name())
@@ -44,18 +47,26 @@ func FileUpload(w http.ResponseWriter, r *http.Request) {
 
 	// Make uploaded physical
 	if _, err = io.Copy(tempfile, upload); err != nil {
-		render.JSON(http.StatusInternalServerError, err)
+		render.Status(r, http.StatusInternalServerError)
+		render.JSON(w, r, &errorResponse{Error: err.Error()})
 		return
 	}
 
 	client := gosseract.NewClient()
 	defer client.Close()
 
-	client.SetImage(tempfile.Name())
+	if err := client.SetImage(tempfile.Name()); err != nil {
+		render.Status(r, http.StatusInternalServerError)
+		render.JSON(w, r, &errorResponse{Error: err.Error()})
+		return
+	}
+
 	client.Languages = []string{"eng"}
+
 	if langs := r.FormValue("languages"); langs != "" {
 		client.Languages = strings.Split(langs, ",")
 	}
+
 	if whitelist := r.FormValue("whitelist"); whitelist != "" {
 		client.SetWhitelist(whitelist)
 	}
@@ -64,17 +75,18 @@ func FileUpload(w http.ResponseWriter, r *http.Request) {
 	switch r.FormValue("format") {
 	case "hocr":
 		out, err = client.HOCRText()
-		render.EscapeHTML = false
 	default:
 		out, err = client.Text()
 	}
 	if err != nil {
-		render.JSON(http.StatusBadRequest, err)
+		render.Status(r, http.StatusInternalServerError)
+		render.JSON(w, r, &errorResponse{Error: err.Error()})
 		return
 	}
 
-	render.JSON(http.StatusOK, map[string]interface{}{
-		"result":  strings.Trim(out, r.FormValue("trim")),
-		"version": version,
+	render.JSON(w, r, ocrResponse{
+		Success: true,
+		Result:  strings.Trim(out, r.FormValue("trim")),
+		Version: version,
 	})
 }

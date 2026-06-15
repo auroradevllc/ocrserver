@@ -3,6 +3,7 @@ package controllers
 import (
 	"bytes"
 	"encoding/json"
+	"html/template"
 	"io"
 	"io/ioutil"
 	"mime/multipart"
@@ -11,16 +12,16 @@ import (
 	"os"
 	"testing"
 
-	"github.com/otiai10/marmoset"
+	"github.com/go-chi/chi/v5"
 	. "github.com/otiai10/mint"
 )
 
 func testserver() *httptest.Server {
-	r := marmoset.NewRouter()
-	r.POST("/base64", Base64)
-	r.POST("/file", FileUpload)
-	r.GET("/status", Status)
-	r.GET("/", Index)
+	r := chi.NewRouter()
+	r.Post("/base64", Base64)
+	r.Post("/file", FileUpload)
+	r.Get("/status", Status)
+	r.Handle("/", NewIndexHandler(template.New("")))
 	return httptest.NewServer(r)
 }
 

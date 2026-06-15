@@ -6,15 +6,15 @@
 
 Simple OCR server, as a small working sample for [gosseract](https://github.com/otiai10/gosseract).
 
-Try now here https://ocr-example.herokuapp.com/, and deploy your own now.
-
-[![](https://user-images.githubusercontent.com/931554/36279290-7134626a-124b-11e8-8e47-d93b7122ea0d.png)](https://ocr-example.herokuapp.com)
+This fork contains a modified version, updated for Go 1.26, gosseract v2.4.1, and Tesseract v5, running on Alpine 
+instead of Debian. It also hosts the image on ghcr.io instead of docker hub due to rate limits, with support for both
+arm64 and amd64/x86.
 
 # Deploy to Heroku
 
 ```sh
 # Get the code
-% git clone git@github.com:otiai10/ocrserver.git
+% git clone git@github.com:auroradevllc/ocrserver.git
 % cd ocrserver
 # Make your app
 % heroku login
@@ -34,7 +34,7 @@ cf. [heroku cli](https://devcenter.heroku.com/articles/heroku-cli#download-and-i
 ## Ready-Made Docker Image
 
 ```sh
-% docker run -p 8080:8080 otiai10/ocrserver
+% docker run -p 8080:8080 ghcr.io/auroradevllc/ocrserver
 # open http://localhost:8080
 ```
 
@@ -61,7 +61,7 @@ cf. [docker-compose](https://www.docker.com/products/docker-toolbox)
 If you have tesseract-ocr  and library files on your machine
 
 ```sh
-% go get github.com/otiai10/ocrserver/...
+% go get github.com/auroradevllc/ocrserver/...
 % PORT=8080 ocrserver
 # open http://localhost:8080
 ```

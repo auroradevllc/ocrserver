@@ -1,41 +1,63 @@
 package main
 
 import (
-	"fmt"
+	"embed"
+	"html/template"
+	"io/fs"
 	"log"
 	"net/http"
 	"os"
 
-	"github.com/otiai10/marmoset"
-
-	"github.com/otiai10/ocrserver/controllers"
-	"github.com/otiai10/ocrserver/filters"
+	"github.com/auroradevllc/ocrserver/controllers"
+	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
 )
 
-var logger *log.Logger
+//go:embed app/assets/*
+var assetFs embed.FS
+
+//go:embed app/views/index.html
+var indexTpl []byte
 
 func main() {
+	r := chi.NewRouter()
 
-	marmoset.LoadViews("./app/views")
+	// Middleware
+	r.Use(middleware.Logger)
 
-	r := marmoset.NewRouter()
 	// API
-	r.GET("/status", controllers.Status)
-	r.POST("/base64", controllers.Base64)
-	r.POST("/file", controllers.FileUpload)
-	// Sample Page
-	r.GET("/", controllers.Index)
-	r.Static("/assets", "./app/assets")
+	r.Get("/status", controllers.Status)
+	r.Post("/base64", controllers.Base64)
+	r.Post("/file", controllers.FileUpload)
+	r.Post("/url", controllers.URL)
 
-	logger = log.New(os.Stdout, fmt.Sprintf("[%s] ", "ocrserver"), 0)
-	r.Apply(&filters.LogFilter{Logger: logger})
+	// Sample Page
+	h := controllers.NewIndexHandler(
+		template.Must(template.New("index").Parse(string(indexTpl))),
+	)
+
+	r.Handle("/", h)
+
+	// Assets for sample page
+	fs, err := fs.Sub(assetFs, "app/assets")
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	r.Handle("/assets/*", http.StripPrefix("/assets/",
+		http.FileServer(http.FS(fs)),
+	))
 
 	port := os.Getenv("PORT")
+
 	if port == "" {
-		logger.Fatalln("Required env `PORT` is not specified.")
+		log.Fatalln("Required env `PORT` is not specified.")
 	}
-	logger.Printf("listening on port %s", port)
+
+	log.Printf("listening on port %s", port)
+
 	if err := http.ListenAndServe(":"+port, r); err != nil {
-		logger.Println(err)
+		log.Println(err)
 	}
 }

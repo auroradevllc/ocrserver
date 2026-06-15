@@ -1,27 +1,27 @@
 package controllers
 
 import (
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
-	"regexp"
+	"os"
 	"strings"
 
 	"github.com/go-chi/render"
 	"github.com/otiai10/gosseract/v2"
 )
 
-type base64Body struct {
-	Base64    string `json:"base64" validate:"required"`
+type urlBody struct {
+	URL       string `json:"url" validate:"required,url"`
 	Trim      string `json:"trim"`
 	Languages string `json:"languages"`
 	Whitelist string `json:"whitelist"`
 }
 
-// Base64 ...
-func Base64(w http.ResponseWriter, r *http.Request) {
-	var body base64Body
+// URL ...
+func URL(w http.ResponseWriter, r *http.Request) {
+	var body urlBody
 
 	err := json.NewDecoder(r.Body).Decode(&body)
 
@@ -41,15 +41,35 @@ func Base64(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	body.Base64 = regexp.MustCompile("data:image\\/png;base64,").ReplaceAllString(body.Base64, "")
-
-	b, err := base64.StdEncoding.DecodeString(body.Base64)
+	tempfile, err := os.CreateTemp("", "ocrserver"+"-")
 
 	if err != nil {
 		render.Status(r, http.StatusBadRequest)
-		render.JSON(w, r, errorResponse{
-			Error: err.Error(),
-		})
+		render.JSON(w, r, &errorResponse{Error: err.Error()})
+		return
+	}
+
+	defer func() {
+		_ = tempfile.Close()
+		_ = os.Remove(tempfile.Name())
+	}()
+
+	// Get url to local file
+	res, err := http.Get(body.URL)
+
+	if err != nil {
+		render.Status(r, http.StatusInternalServerError)
+		render.JSON(w, r, &errorResponse{Error: err.Error()})
+		return
+	}
+
+	defer res.Body.Close()
+
+	_, err = io.Copy(tempfile, res.Body)
+
+	if err != nil {
+		render.Status(r, http.StatusInternalServerError)
+		render.JSON(w, r, &errorResponse{Error: err.Error()})
 		return
 	}
 
@@ -62,7 +82,7 @@ func Base64(w http.ResponseWriter, r *http.Request) {
 		client.Languages = strings.Split(body.Languages, ",")
 	}
 
-	if err := client.SetImageFromBytes(b); err != nil {
+	if err := client.SetImage(tempfile.Name()); err != nil {
 		render.Status(r, http.StatusInternalServerError)
 		render.JSON(w, r, errorResponse{
 			Error: fmt.Sprintf("failed to set tesseract image: %v", err),

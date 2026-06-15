@@ -3,29 +3,41 @@ package controllers
 import (
 	"net/http"
 
+	"github.com/go-chi/render"
 	"github.com/otiai10/gosseract/v2"
-	"github.com/otiai10/marmoset"
 )
 
 const version = "0.2.0"
 
+type tesseractStatus struct {
+	Version   string   `json:"version"`
+	Languages []string `json:"languages"`
+}
+
+type statusResponse struct {
+	Success   bool            `json:"success"`
+	Version   string          `json:"version"`
+	Tesseract tesseractStatus `json:"tesseract"`
+}
+
 // Status ...
 func Status(w http.ResponseWriter, r *http.Request) {
 	langs, err := gosseract.GetAvailableLanguages()
+
 	if err != nil {
-		marmoset.Render(w, true).JSON(http.StatusInternalServerError, marmoset.P{
-			"error": err,
+		render.Status(r, http.StatusInternalServerError)
+		render.JSON(w, r, errorResponse{
+			Error: err.Error(),
 		})
 		return
 	}
-	client := gosseract.NewClient()
-	defer client.Close()
-	marmoset.Render(w, true).JSON(http.StatusOK, marmoset.P{
-		"message": "Hello!",
-		"version": version,
-		"tesseract": marmoset.P{
-			"version":   client.Version(),
-			"languages": langs,
+
+	render.JSON(w, r, statusResponse{
+		Success: true,
+		Version: version,
+		Tesseract: tesseractStatus{
+			Version:   clientVersion,
+			Languages: langs,
 		},
 	})
 }

@@ -1,25 +1,27 @@
-FROM debian:bullseye-slim
-LABEL maintainer="otiai10 <otiai10@gmail.com>"
+FROM golang:alpine AS builder
+LABEL maintainer="Tyler Stuyfzand <tyler@auroradev.org>"
 
-ARG LOAD_LANG=jpn
+RUN apk add --no-cache \
+      tesseract-ocr-dev \
+      tesseract-ocr \
+      g++
 
-RUN apt update \
-    && apt install -y \
-      ca-certificates \
-      libtesseract-dev=4.1.1-2.1 \
-      tesseract-ocr=4.1.1-2.1 \
-      golang=2:1.15~1
+WORKDIR /app
+COPY . /app
 
-ENV GO111MODULE=on
-ENV GOPATH=${HOME}/go
-ENV PATH=${PATH}:${GOPATH}/bin
+RUN go build -o ocrserver .
 
-ADD . $GOPATH/src/github.com/otiai10/ocrserver
-WORKDIR $GOPATH/src/github.com/otiai10/ocrserver
-RUN go get -v ./... && go install .
+FROM alpine
 
-# Load languages
-RUN if [ -n "${LOAD_LANG}" ]; then apt-get install -y tesseract-ocr-${LOAD_LANG}; fi
+ARG LOAD_LANG=eng
+ENV LOAD_LANG=$LOAD_LANG
+
+RUN apk add --no-cache \
+      tesseract-ocr
+
+RUN if [ -n "${LOAD_LANG}" ]; then apk add --no-cache tesseract-ocr-data-${LOAD_LANG}; fi
+
+COPY --from=builder /app/ocrserver /usr/bin/ocrserver
 
 ENV PORT=8080
 CMD ["ocrserver"]
