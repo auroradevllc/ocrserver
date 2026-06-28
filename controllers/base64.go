@@ -1,24 +1,30 @@
 package controllers
 
 import (
+	"bytes"
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"image"
+	"image/jpeg"
+	"image/png"
 	"net/http"
 	"regexp"
 	"strings"
 
+	"github.com/anthonynsimon/bild/effect"
 	"github.com/go-chi/render"
 	"github.com/otiai10/gosseract/v2"
 )
 
 type base64Body struct {
-	Base64    string `json:"base64" validate:"required"`
-	Trim      string `json:"trim"`
-	Languages string `json:"languages"`
-	Whitelist string `json:"whitelist"`
+	Base64           string `json:"base64" validate:"required"`
+	Trim             string `json:"trim"`
+	Languages        string `json:"languages"`
+	Whitelist        string `json:"whitelist"`
+	ConvertGrayscale bool   `json:"convertGrayscale"`
 }
 
 // Base64 ...
@@ -60,6 +66,32 @@ func Base64(w http.ResponseWriter, r *http.Request) {
 	h := s.Sum(nil)
 
 	w.Header().Set("X-File-Hash", hex.EncodeToString(h))
+
+	if body.ConvertGrayscale {
+		t := http.DetectContentType(b)
+
+		var img image.Image
+
+		switch t {
+		case "image/png":
+			img, err = png.Decode(bytes.NewReader(b))
+		case "image/jpeg", "image/jpg":
+			img, err = jpeg.Decode(bytes.NewReader(b))
+		}
+
+		result := effect.GrayscaleWithWeights(img, 0.2126, 0.7152, 0.0722)
+
+		var buf bytes.Buffer
+
+		switch t {
+		case "image/png":
+			err = png.Encode(&buf, result)
+		case "image/jpeg", "image/jpg":
+			err = jpeg.Encode(&buf, result, nil)
+		}
+
+		b = buf.Bytes()
+	}
 
 	client := gosseract.NewClient()
 	defer client.Close()

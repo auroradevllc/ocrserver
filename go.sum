@@ -1,5 +1,7 @@
 github.com/ajg/form v1.5.1 h1:t9c7v8JUKu/XxOGBU0yjNpaMloxGEJhUkqFRq0ibGeU=
 github.com/ajg/form v1.5.1/go.mod h1:uL1WgH+h2mgNtvBq0339dVnzXdBETtL2LeUXaIv25UY=
+github.com/anthonynsimon/bild v0.15.0 h1:FzvaNLuNlAPKw1Xz7V2WYOcGIEBMj8Y6ZyAk7CI+HzA=
+github.com/anthonynsimon/bild v0.15.0/go.mod h1:qIgJ9FldkCn0iy5Ad24fzUkz5R+iJ0WfhiV+6FeCB5A=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/gabriel-vasile/mimetype v1.4.13 h1:46nXokslUBsAJE/wMsp5gtO500a4F3Nkz9Ufpk2AcUM=

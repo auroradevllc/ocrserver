@@ -3,6 +3,7 @@ module github.com/auroradevllc/ocrserver
 go 1.26
 
 require (
+	github.com/anthonynsimon/bild v0.15.0
 	github.com/go-chi/chi/v5 v5.3.0
 	github.com/go-chi/render v1.0.3
 	github.com/go-playground/validator/v10 v10.30.3
