@@ -1,6 +1,8 @@
 package controllers
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -65,13 +67,21 @@ func URL(w http.ResponseWriter, r *http.Request) {
 
 	defer res.Body.Close()
 
-	_, err = io.Copy(tempfile, res.Body)
+	s := sha256.New()
+
+	mw := io.MultiWriter(tempfile, s)
+
+	_, err = io.Copy(mw, res.Body)
 
 	if err != nil {
 		render.Status(r, http.StatusInternalServerError)
 		render.JSON(w, r, &errorResponse{Error: err.Error()})
 		return
 	}
+
+	h := s.Sum(nil)
+
+	w.Header().Set("X-File-Hash", hex.EncodeToString(h))
 
 	client := gosseract.NewClient()
 	defer client.Close()

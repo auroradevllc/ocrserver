@@ -1,6 +1,8 @@
 package controllers
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"io"
 	"net/http"
 	"os"
@@ -42,15 +44,23 @@ func FileUpload(w http.ResponseWriter, r *http.Request) {
 
 	defer func() {
 		tempfile.Close()
-		os.Remove(tempfile.Name())
+		_ = os.Remove(tempfile.Name())
 	}()
 
+	s := sha256.New()
+
+	mw := io.MultiWriter(tempfile, s)
+
 	// Make uploaded physical
-	if _, err = io.Copy(tempfile, upload); err != nil {
+	if _, err = io.Copy(mw, upload); err != nil {
 		render.Status(r, http.StatusInternalServerError)
 		render.JSON(w, r, &errorResponse{Error: err.Error()})
 		return
 	}
+
+	h := s.Sum(nil)
+
+	w.Header().Set("X-File-Hash", hex.EncodeToString(h))
 
 	client := gosseract.NewClient()
 	defer client.Close()

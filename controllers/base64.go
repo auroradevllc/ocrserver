@@ -1,7 +1,9 @@
 package controllers
 
 import (
+	"crypto/sha256"
 	"encoding/base64"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -52,6 +54,12 @@ func Base64(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
+
+	s := sha256.New()
+	s.Write(b)
+	h := s.Sum(nil)
+
+	w.Header().Set("X-File-Hash", hex.EncodeToString(h))
 
 	client := gosseract.NewClient()
 	defer client.Close()
