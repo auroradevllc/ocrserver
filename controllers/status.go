@@ -7,7 +7,7 @@ import (
 	"github.com/otiai10/gosseract/v2"
 )
 
-const version = "0.2.0"
+const version = "0.3.0"
 
 type tesseractStatus struct {
 	Version   string   `json:"version"`
