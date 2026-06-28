@@ -5,7 +5,6 @@ import (
 	"image/jpeg"
 	"image/png"
 	"io"
-	"log"
 	"net/http"
 	"os"
 
@@ -20,8 +19,6 @@ func grayscaleImageFile(file *os.File) error {
 	}
 
 	t := http.DetectContentType(h)
-
-	log.Println("Detected image type as", t)
 
 	var img image.Image
 
