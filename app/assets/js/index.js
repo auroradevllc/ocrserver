@@ -18,12 +18,14 @@ window.onload = () => {
     output:    document.getElementById("output"),
     image:     document.querySelector("img#img"),
     btnFile:   document.getElementById("by-file"),
+    btnURL: document.getElementById("by-url"),
     btnBase64: document.getElementById("by-base64"),
     cancel:    document.getElementById("cancel-input"),
     file:      document.getElementById("file"),
     langs:     document.querySelector("input[name=langs]"),
     whitelist: document.querySelector("input[name=whitelist]"),
     hocr:      document.querySelector("input[name=hocr]"),
+    convertGrayscale: document.querySelector("input[name=convertGrayscale]"),
     submit:    document.getElementById("submit"),
     loading:   document.querySelector("button#submit>span:first-child"),
     standby:   document.querySelector("button#submit>span:last-child"),
@@ -40,6 +42,10 @@ window.onload = () => {
     r.readAsDataURL(ev.target.files[0]);
   });
   ui.btnFile.addEventListener("click", () => ui.file.click());
+  ui.btnURL.addEventListener("click", () => {
+    const url = window.prompt("Please paste your image url");
+    if (url) { ui.clear(); ui.show(url); }
+  });
   ui.btnBase64.addEventListener("click", () => {
     const uri = window.prompt("Please paste your base64 image URI");
     if (uri) { ui.clear(); ui.show(uri); }
@@ -63,6 +69,7 @@ window.onload = () => {
       if (ui.langs.value) req.data.append("languages", ui.langs.value);
       if (ui.whitelist.value) req.data.append("whitelist", ui.whitelist.value);
       if (ui.hocr.checked) req.data.append("format", "hocr");
+      if (ui.convertGrayscale.checked) req.data.append("convertGrayscale", "true");
       req.data.append("file", ui.file.files[0]);
     } else if (/^data:.+/.test(ui.image.src)) {
       req.path = "/base64";
@@ -70,6 +77,15 @@ window.onload = () => {
       if (ui.langs.value) data["languages"] = ui.langs.value;
       if (ui.whitelist.value) data["whitelist"] = ui.whitelist.value;
       if (ui.hocr.checked) data["format"] = "hocr";
+      if (ui.convertGrayscale.checked) data["convertGrayscale"] = true;
+      req.data = JSON.stringify(data);
+    } else if (/^http/.test(ui.image.src)) {
+      req.path = "/url";
+      var data = {url: ui.image.src};
+      if (ui.langs.value) data["languages"] = ui.langs.value;
+      if (ui.whitelist.value) data["whitelist"] = ui.whitelist.value;
+      if (ui.hocr.checked) data["format"] = "hocr";
+      if (ui.convertGrayscale.checked) data["convertGrayscale"] = true;
       req.data = JSON.stringify(data);
     } else {
       return window.alert("no image input set");

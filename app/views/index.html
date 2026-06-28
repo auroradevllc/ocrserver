@@ -37,7 +37,7 @@
         <div class="column">
 
           <p class="title">Input</p>
-          <p class="subtitle">File or base64 encoded string</p>
+          <p class="subtitle">File, url, or base64 encoded string</p>
 
           <div class="card">
             <div class="card-content">
@@ -50,6 +50,7 @@
             </div>
             <footer class="card-footer">
               <a class="card-footer-item" id="by-file">File</a>
+              <a class="card-footer-item" id="by-url">URL</a>
               <a class="card-footer-item" id="by-base64">base64</a>
               <a class="card-footer-item" id="cancel-input">Cancel</a>
               <input type="file" accept="image/*" style="display:none" id="file" />
@@ -82,6 +83,13 @@
             <lable class="label">Use hOCR</lable>
             <label class="checkbox">
               <input type="checkbox" name="hocr"> More about hOCR → <a href="https://en.wikipedia.org/wiki/HOCR">https://en.wikipedia.org/wiki/HOCR</a>
+            </label>
+          </div>
+
+          <div class="field">
+            <lable class="label">Convert to Grayscale (ITU-R BT.709)</lable>
+            <label class="checkbox">
+              <input type="checkbox" name="convertGrayscale">
             </label>
           </div>
 

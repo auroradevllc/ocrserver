@@ -5,15 +5,11 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"image"
-	"image/jpeg"
-	"image/png"
 	"io"
 	"net/http"
 	"os"
 	"strings"
 
-	"github.com/anthonynsimon/bild/effect"
 	"github.com/go-chi/render"
 	"github.com/otiai10/gosseract/v2"
 )
@@ -89,47 +85,7 @@ func URL(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("X-File-Hash", hex.EncodeToString(h))
 
 	if body.ConvertGrayscale {
-		// Read the first 512 bytes to use for the content type, file extensions lie
-		h := make([]byte, 512)
-
-		if _, err := tempfile.ReadAt(h, 0); err != nil {
-			serveError(w, r, err)
-			return
-		}
-
-		t := http.DetectContentType(h)
-
-		var img image.Image
-
-		// Reset file position to read
-		if _, err := tempfile.Seek(0, io.SeekStart); err != nil {
-			serveError(w, r, err)
-			return
-		}
-
-		switch t {
-		case "image/png":
-			img, err = png.Decode(tempfile)
-		case "image/jpeg", "image/jpg":
-			img, err = jpeg.Decode(tempfile)
-		}
-
-		result := effect.GrayscaleWithWeights(img, 0.2126, 0.7152, 0.0722)
-
-		if err := tempfile.Truncate(0); err != nil {
-			serveError(w, r, err)
-			return
-		}
-
-		// Re-encode the image
-		switch t {
-		case "image/png":
-			err = png.Encode(tempfile, result)
-		case "image/jpeg", "image/jpg":
-			err = jpeg.Encode(tempfile, result, nil)
-		}
-
-		if err != nil {
+		if err := grayscaleImageFile(tempfile); err != nil {
 			serveError(w, r, err)
 			return
 		}
