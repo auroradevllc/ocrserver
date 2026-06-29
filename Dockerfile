@@ -6,7 +6,14 @@ ARG GO_VERSION=1.26.4
 
 # install curl + tar
 RUN apt-get update && \
-    apt-get install -y curl ca-certificates tar libtesseract-dev tesseract-ocr tesseract-ocr-osd
+    apt-get install -y \
+      curl \
+      ca-certificates \
+      tar \
+      libtesseract-dev \
+      tesseract-ocr \
+      tesseract-ocr-osd && \
+    rm -rf /var/lib/apt/lists/*
 
 # install Go from go.dev
 RUN curl -fsSL https://go.dev/dl/go${GO_VERSION}.linux-amd64.tar.gz -o go.tar.gz \
@@ -29,7 +36,8 @@ ENV LOAD_LANG=$LOAD_LANG
 RUN apt-get update && \
     apt-get install -y \
       tesseract-ocr \
-      tesseract-ocr-osd
+      tesseract-ocr-osd && \
+    rm -rf /var/lib/apt/lists/*
 
 RUN if [ -n "${LOAD_LANG}" ]; then apt-get install tesseract-ocr-${LOAD_LANG}; fi
 
