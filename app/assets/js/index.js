@@ -24,8 +24,10 @@ window.onload = () => {
     file:      document.getElementById("file"),
     langs:     document.querySelector("input[name=langs]"),
     whitelist: document.querySelector("input[name=whitelist]"),
+    pageSegMode: document.querySelector("select[name=pageSegMode]"),
     hocr:      document.querySelector("input[name=hocr]"),
     convertGrayscale: document.querySelector("input[name=convertGrayscale]"),
+    deskew: document.querySelector("input[name=deskew]"),
     submit:    document.getElementById("submit"),
     loading:   document.querySelector("button#submit>span:first-child"),
     standby:   document.querySelector("button#submit>span:last-child"),
@@ -68,24 +70,30 @@ window.onload = () => {
       req.data = new FormData();
       if (ui.langs.value) req.data.append("languages", ui.langs.value);
       if (ui.whitelist.value) req.data.append("whitelist", ui.whitelist.value);
+      if (ui.pageSegMode.value) req.data.append("pageSegMode", ui.pageSegMode.value);
       if (ui.hocr.checked) req.data.append("format", "hocr");
       if (ui.convertGrayscale.checked) req.data.append("convertGrayscale", "true");
+      if (ui.deskew.checked) req.data.append("deskew", "true");
       req.data.append("file", ui.file.files[0]);
     } else if (/^data:.+/.test(ui.image.src)) {
       req.path = "/base64";
       var data = {base64: ui.image.src};
       if (ui.langs.value) data["languages"] = ui.langs.value;
       if (ui.whitelist.value) data["whitelist"] = ui.whitelist.value;
+      if (ui.pageSegMode.value) data["pageSegMode"] = ui.pageSegMode.value;
       if (ui.hocr.checked) data["format"] = "hocr";
       if (ui.convertGrayscale.checked) data["convertGrayscale"] = true;
+      if (ui.deskew.checked) data["deskew"] = true;
       req.data = JSON.stringify(data);
     } else if (/^http/.test(ui.image.src)) {
       req.path = "/url";
       var data = {url: ui.image.src};
       if (ui.langs.value) data["languages"] = ui.langs.value;
       if (ui.whitelist.value) data["whitelist"] = ui.whitelist.value;
+      if (ui.pageSegMode.value) data["pageSegMode"] = ui.pageSegMode.value;
       if (ui.hocr.checked) data["format"] = "hocr";
       if (ui.convertGrayscale.checked) data["convertGrayscale"] = true;
+      if (ui.deskew.checked) data["deskew"] = true;
       req.data = JSON.stringify(data);
     } else {
       return window.alert("no image input set");

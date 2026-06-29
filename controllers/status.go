@@ -6,7 +6,7 @@ import (
 	"github.com/go-chi/render"
 )
 
-const version = "0.4.3"
+const version = "0.5.0"
 
 type tesseractStatus struct {
 	Version   string   `json:"version"`

@@ -7,7 +7,9 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
+	"path"
 	"strings"
 
 	"github.com/go-chi/render"
@@ -15,11 +17,13 @@ import (
 )
 
 type urlBody struct {
-	URL              string `json:"url" validate:"required,url"`
-	Trim             string `json:"trim"`
-	Languages        string `json:"languages"`
-	Whitelist        string `json:"whitelist"`
-	ConvertGrayscale bool   `json:"convertGrayscale"`
+	URL              string                 `json:"url" validate:"required,url"`
+	Trim             string                 `json:"trim"`
+	Languages        string                 `json:"languages"`
+	Whitelist        string                 `json:"whitelist"`
+	ConvertGrayscale bool                   `json:"convertGrayscale"`
+	Deskew           bool                   `json:"deskew"`
+	PageSegMode      *gosseract.PageSegMode `json:"pageSegMode"`
 }
 
 // URL ...
@@ -44,7 +48,20 @@ func URL(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tempfile, err := os.CreateTemp("", "ocrserver"+"-")
+	u, err := url.Parse(body.URL)
+
+	if err != nil {
+		return
+	}
+
+	ext := strings.ToLower(path.Ext(u.Path))
+
+	if ext != ".jpg" && ext != ".jpeg" && ext != ".png" {
+		serveError(w, r, fmt.Errorf("%s is not a valid image", u.Path))
+		return
+	}
+
+	tempfile, err := os.CreateTemp("", "ocrserver-*"+ext)
 
 	if err != nil {
 		render.Status(r, http.StatusBadRequest)
@@ -84,7 +101,12 @@ func URL(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("X-File-Hash", hex.EncodeToString(h))
 
-	if body.ConvertGrayscale {
+	if body.Deskew {
+		if err := deskewImageFile(tempfile); err != nil {
+			serveError(w, r, err)
+			return
+		}
+	} else if body.ConvertGrayscale {
 		if err := grayscaleImageFile(tempfile); err != nil {
 			serveError(w, r, err)
 			return
@@ -113,6 +135,10 @@ func URL(w http.ResponseWriter, r *http.Request) {
 		client.SetWhitelist(body.Whitelist)
 	}
 
+	if body.PageSegMode != nil {
+		client.SetPageSegMode(*body.PageSegMode)
+	}
+
 	text, err := client.Text()
 
 	if err != nil {
@@ -129,5 +155,7 @@ func URL(w http.ResponseWriter, r *http.Request) {
 
 func serveError(w http.ResponseWriter, r *http.Request, err error) {
 	render.Status(r, http.StatusInternalServerError)
-	render.JSON(w, r, err)
+	render.JSON(w, r, &errorResponse{
+		Error: err.Error(),
+	})
 }

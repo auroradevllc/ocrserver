@@ -80,16 +80,45 @@
           </div>
 
           <div class="field">
-            <lable class="label">Use hOCR</lable>
+            <label class="label">PageSegMode</label>
+            <label class="checkbox">
+              <select name="pageSegMode">
+                <option value="0">PSM_OSD_ONLY</option>
+                <option value="1">PSM_AUTO_OSD</option>
+                <option value="2">PSM_AUTO_ONLY</option>
+                <option value="3" selected>PSM_AUTO</option>
+                <option value="4">PSM_SINGLE_COLUMN</option>
+                <option value="5">PSM_SINGLE_BLOCK_VERT_TEXT</option>
+                <option value="6">PSM_SINGLE_BLOCK</option>
+                <option value="7">PSM_SINGLE_LINE</option>
+                <option value="8">PSM_SINGLE_WORD</option>
+                <option value="9">PSM_CIRCLE_WORD</option>
+                <option value="10">PSM_SINGLE_CHAR</option>
+                <option value="11">PSM_SPARSE_TEXT</option>
+                <option value="12">PSM_SPARSE_TEXT_OSD</option>
+                <option value="13">PSM_RAW_LINE</option>
+              </select>
+            </label>
+          </div>
+
+          <div class="field">
+            <label class="label">Use hOCR</label>
             <label class="checkbox">
               <input type="checkbox" name="hocr"> More about hOCR → <a href="https://en.wikipedia.org/wiki/HOCR">https://en.wikipedia.org/wiki/HOCR</a>
             </label>
           </div>
 
           <div class="field">
-            <lable class="label">Convert to Grayscale (ITU-R BT.709)</lable>
+            <label class="label">Convert to Grayscale (ITU-R BT.709)</label>
             <label class="checkbox">
               <input type="checkbox" name="convertGrayscale">
+            </label>
+          </div>
+
+          <div class="field">
+            <label class="label">Deskew (Also converts to Grayscale)</label>
+            <label class="checkbox">
+              <input type="checkbox" name="deskew">
             </label>
           </div>
 

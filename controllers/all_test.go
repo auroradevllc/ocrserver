@@ -165,7 +165,7 @@ func TestStatus(t *testing.T) {
 	Expect(t, res.StatusCode).ToBe(http.StatusOK)
 	resp := new(Response)
 	json.NewDecoder(res.Body).Decode(&resp)
-	Expect(t, resp.Version).ToBe("0.2.0")
+	Expect(t, resp.Version).ToBe(version)
 	Expect(t, resp.Tesseract.Languages).TypeOf("[]string")
 }
 

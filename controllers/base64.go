@@ -1,30 +1,28 @@
 package controllers
 
 import (
-	"bytes"
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"image"
-	"image/jpeg"
-	"image/png"
 	"net/http"
 	"regexp"
 	"strings"
 
-	"github.com/anthonynsimon/bild/effect"
 	"github.com/go-chi/render"
 	"github.com/otiai10/gosseract/v2"
+	"gocv.io/x/gocv"
 )
 
 type base64Body struct {
-	Base64           string `json:"base64" validate:"required"`
-	Trim             string `json:"trim"`
-	Languages        string `json:"languages"`
-	Whitelist        string `json:"whitelist"`
-	ConvertGrayscale bool   `json:"convertGrayscale"`
+	Base64           string                 `json:"base64" validate:"required"`
+	Trim             string                 `json:"trim"`
+	Languages        string                 `json:"languages"`
+	Whitelist        string                 `json:"whitelist"`
+	ConvertGrayscale bool                   `json:"convertGrayscale"`
+	Deskew           bool                   `json:"deskew"`
+	PageSegMode      *gosseract.PageSegMode `json:"pageSegMode"`
 }
 
 // Base64 ...
@@ -34,18 +32,12 @@ func Base64(w http.ResponseWriter, r *http.Request) {
 	err := json.NewDecoder(r.Body).Decode(&body)
 
 	if err != nil {
-		render.Status(r, http.StatusBadRequest)
-		render.JSON(w, r, errorResponse{
-			Error: err.Error(),
-		})
+		serveError(w, r, err)
 		return
 	}
 
 	if err := v.Struct(body); err != nil {
-		render.Status(r, http.StatusBadRequest)
-		render.JSON(w, r, errorResponse{
-			Error: err.Error(),
-		})
+		serveError(w, r, err)
 		return
 	}
 
@@ -54,10 +46,7 @@ func Base64(w http.ResponseWriter, r *http.Request) {
 	b, err := base64.StdEncoding.DecodeString(body.Base64)
 
 	if err != nil {
-		render.Status(r, http.StatusBadRequest)
-		render.JSON(w, r, errorResponse{
-			Error: err.Error(),
-		})
+		serveError(w, r, err)
 		return
 	}
 
@@ -67,30 +56,60 @@ func Base64(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("X-File-Hash", hex.EncodeToString(h))
 
-	if body.ConvertGrayscale {
+	if body.Deskew || body.ConvertGrayscale {
+		img, err := gocv.IMDecode(b, gocv.IMReadColor)
+		defer img.Close()
+
+		if err != nil {
+			serveError(w, r, err)
+			return
+		}
+
+		var outputImg gocv.Mat
+
+		if body.Deskew {
+			deskewed, err := deskewMaterial(img)
+			defer deskewed.Close()
+
+			if err != nil {
+				serveError(w, r, err)
+				return
+			}
+
+			outputImg = *deskewed
+		} else if body.ConvertGrayscale {
+			outputImg = gocv.NewMat()
+			defer outputImg.Close()
+
+			if err := gocv.CvtColor(img, &outputImg, gocv.ColorBGRToGray); err != nil {
+				serveError(w, r, err)
+				return
+			}
+		} else {
+			serveError(w, r, fmt.Errorf("invalid image operation"))
+			return
+		}
+
 		t := http.DetectContentType(b)
 
-		var img image.Image
+		var ext gocv.FileExt
 
 		switch t {
 		case "image/png":
-			img, err = png.Decode(bytes.NewReader(b))
-		case "image/jpeg", "image/jpg":
-			img, err = jpeg.Decode(bytes.NewReader(b))
+			ext = gocv.PNGFileExt
+		case "image/jpg", "image/jpeg":
+			ext = gocv.JPEGFileExt
 		}
 
-		result := effect.GrayscaleWithWeights(img, 0.2126, 0.7152, 0.0722)
+		buf, err := gocv.IMEncode(ext, outputImg)
+		defer buf.Close()
 
-		var buf bytes.Buffer
-
-		switch t {
-		case "image/png":
-			err = png.Encode(&buf, result)
-		case "image/jpeg", "image/jpg":
-			err = jpeg.Encode(&buf, result, nil)
+		if err != nil {
+			serveError(w, r, err)
+			return
 		}
 
-		b = buf.Bytes()
+		b = buf.GetBytes()
 	}
 
 	client := gosseract.NewClient()
@@ -103,11 +122,7 @@ func Base64(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := client.SetImageFromBytes(b); err != nil {
-		render.Status(r, http.StatusInternalServerError)
-		render.JSON(w, r, errorResponse{
-			Error: fmt.Sprintf("failed to set tesseract image: %v", err),
-		})
-
+		serveError(w, r, fmt.Errorf("failed to set tesseract image: %v", err))
 		return
 	}
 
@@ -115,11 +130,14 @@ func Base64(w http.ResponseWriter, r *http.Request) {
 		client.SetWhitelist(body.Whitelist)
 	}
 
+	if body.PageSegMode != nil {
+		client.SetPageSegMode(*body.PageSegMode)
+	}
+
 	text, err := client.Text()
 
 	if err != nil {
-		render.Status(r, http.StatusInternalServerError)
-		render.JSON(w, r, err)
+		serveError(w, r, err)
 		return
 	}
 
